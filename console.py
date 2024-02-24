@@ -128,8 +128,8 @@ class HBNBCommand(cmd.Cmd):
             value = param[1].replace('"', '\"').replace('_', ' ')
             value = eval(value)
             params[key] = value
-        new_instance = HBNBCommand.classes[args]()
-        storage.save()
+        new_instance = HBNBCommand.classes[args[0]](**params)
+        new_instance.save()
         print(new_instance.id)
         storage.save()
 
