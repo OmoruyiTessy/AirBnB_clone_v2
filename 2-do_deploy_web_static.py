@@ -1,52 +1,35 @@
 #!/usr/bin/python3
 """
-Fabric script that distributes an archive to your web servers
+This module contains a function used to deploy the archived html scripts to
+out server
 """
 
-from datetime import datetime
-from fabric.api import *
 import os
+from fabric.api import *
+from pathlib import Path
 
-env.hosts = ["52.91.121.146", "3.85.136.181"]
-env.user = "ubuntu"
 
-
-def do_pack():
-    """
-        return the archive path if archive has generated correctly.
-    """
-
-    local("mkdir -p versions")
-    date = datetime.now().strftime("%Y%m%d%H%M%S")
-    archived_f_path = "versions/web_static_{}.tgz".format(date)
-    t_gzip_archive = local("tar -cvzf {} web_static".format(archived_f_path))
-
-    if t_gzip_archive.succeeded:
-        return archived_f_path
-    else:
-        return None
+env.hosts = ['3.90.82.95', '54.157.156.207']
 
 
 def do_deploy(archive_path):
     """
-        Distribute archive.
+    Function to respectively deploy the static to their respective locations
+    on server
     """
-    if os.path.exists(archive_path):
-        archived_file = archive_path[9:]
-        newest_version = "/data/web_static/releases/" + archived_file[:-4]
-        archived_file = "/tmp/" + archived_file
-        put(archive_path, "/tmp/")
-        run("sudo mkdir -p {}".format(newest_version))
-        run("sudo tar -xzf {} -C {}/".format(archived_file,
-                                             newest_version))
-        run("sudo rm {}".format(archived_file))
-        run("sudo mv {}/web_static/* {}".format(newest_version,
-                                                newest_version))
-        run("sudo rm -rf {}/web_static".format(newest_version))
-        run("sudo rm -rf /data/web_static/current")
-        run("sudo ln -s {} /data/web_static/current".format(newest_version))
+    pathObj = Path(archive_path)
+    if not pathObj.exists:
+        return False
 
-        print("New version deployed!")
-        return True
-
-    return False
+    tmpDest = f"/tmp/{pathObj.name}"
+    destDir = f"/data/web_static/releases/{pathObj.stem}/"
+    put(archive_path, tmpDest)
+    exec_1 = sudo(f"mkdir -p {destDir}")
+    exec_2 = sudo(f"tar -xzf {tmpDest} -C {destDir}")
+    exec_3 = sudo(f"rm {tmpDest}")
+    exec_4 = sudo(f"mv {destDir}/web_static/* {destDir}")
+    exec_5 = sudo(f"rm -rf {destDir}/web_static")
+    exec_6 = sudo(f"rm -rf /data/web_static/current")
+    exec_7 = sudo(f"ln -s {destDir} /data/web_static/current")
+    exec_list = [exec_1, exec_2, exec_3, exec_4, exec_5, exec_6, exec_7]
+    return True if all([obj.succeeded for obj in exec_list]) else False
