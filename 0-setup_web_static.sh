@@ -1,40 +1,38 @@
 #!/usr/bin/env bash
-# A Bash script that sets up your web servers for the deployment of web_static
+# Sets up a web server for deployment of web_static.
 
-# install nginx
-if ! (nginx -v)
-then
-    sudo apt-get update -y
-    sudo apt-get install -y nginx
-fi
+apt-get update
+apt-get install -y nginx
 
-# create the desired directories
-sudo mkdir -p /data/web_static/shared/
-sudo mkdir -p /data/web_static/releases/test/
+mkdir -p /data/web_static/releases/test/
+mkdir -p /data/web_static/shared/
+echo "Holberton School" > /data/web_static/releases/test/index.html
+ln -sf /data/web_static/releases/test/ /data/web_static/current
 
-# create an html index page containing the content of the idx_cont variable
-idx_cont="<html>
-  <head>
-  </head>
-  <body>
-    Holberton School
-  </body>
-</html>"
+chown -R ubuntu /data/
+chgrp -R ubuntu /data/
 
-echo "$idx_cont" | sudo tee /data/web_static/releases/test/index.html > /dev/null
+printf %s "server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    add_header X-Served-By $HOSTNAME;
+    root   /var/www/html;
+    index  index.html index.htm;
 
-# pcreate a symbolic link to current to the test directory
-sudo ln -sf /data/web_static/releases/test/ /data/web_static/current
+    location /hbnb_static {
+        alias /data/web_static/current;
+        index index.html index.htm;
+    }
 
-# change ownership of the /data/ folder to the ubuntu user AND group
-sudo chown --recursive ubuntu:ubuntu /data
+    location /redirect_me {
+        return 301 http://cuberule.com/;
+    }
 
-# configure nginx to serve the index of /data/web_static/current when hbnb_static/ dir is queried
-sedStr="\\
-\tlocation /hbnb_static {\\
-\t\t alias /data/web_static/current/;\\
-\t}"
-sudo sed -i '/server_name _;/a '"$sedStr"'' /etc/nginx/sites-enabled/default
+    error_page 404 /404.html;
+    location /404 {
+      root /var/www/html;
+      internal;
+    }
+}" > /etc/nginx/sites-available/default
 
-# restart nginx
-sudo service nginx restart
+service nginx restart
