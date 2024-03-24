@@ -73,7 +73,7 @@ class HBNBCommand(cmd.Cmd):
                 pline = pline[2].strip()  # pline is now str
                 if pline:
                     # check for *args or **kwargs
-                    if pline[0] is '{' and pline[-1] is'}'\
+                    if pline[0] is '{' and pline[-1] is '}'\
                             and type(eval(pline)) is dict:
                         _args = pline
                     else:
@@ -121,8 +121,15 @@ class HBNBCommand(cmd.Cmd):
         elif args not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
-        storage.save()
+        params = {}
+        for i in range(1, len(args)):
+            param = args[i].split("=")
+            key = param[0]
+            value = param[1].replace('"', '\"').replace('_', ' ')
+            value = eval(value)
+            params[key] = value
+        new_instance = HBNBCommand.classes[args[0]](**params)
+        new_instance.save()
         print(new_instance.id)
         storage.save()
 
